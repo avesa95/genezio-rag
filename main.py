@@ -7,6 +7,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 
+from hybrid_retrieval import HybridSearch
 from indexing import DocumentProcessor, QdrantIndexer
 
 # Load environment variables
@@ -28,6 +29,7 @@ class DocumentStats:
             url=QDRANT_HOST,
             api_key=QDRANT_API_KEY,
         )
+        self.hybrid_search = HybridSearch()
 
     def get_indexed_documents(self):
         try:
@@ -82,6 +84,13 @@ class DocumentStats:
             logger.error(f"Error fetching documents: {e}")
             return {}
 
+    def search_documents(self, query_text, limit=5):
+        try:
+            return self.hybrid_search.query_hybrid_search(query_text, limit=limit)
+        except Exception as e:
+            logger.error(f"Error searching documents: {e}")
+            return []
+
 
 def format_file_size(size_in_bytes):
     """Convert bytes to human readable format"""
@@ -131,8 +140,24 @@ def display_documents(documents):
                             chunk["text"],
                             height=150,
                             disabled=True,
-                            key=tab,
+                            key=f"{filename}_{chunk['page']}",
                         )
+
+
+def display_search_results(results):
+    if not results:
+        st.info("No results found.")
+        return
+
+    for i, result in enumerate(results):
+        st.markdown("**Content**")
+        st.text_area(
+            "Text",
+            result,
+            height=150,
+            disabled=True,
+            key=f"result_{i}",
+        )
 
 
 def main():
@@ -141,7 +166,7 @@ def main():
     st.title("📚 Genezio RAG")
 
     # Create tabs for different sections
-    tab1, tab2 = st.tabs(["Upload Documents", "Indexed Documents"])
+    tab1, tab2, tab3 = st.tabs(["Upload Documents", "Indexed Documents", "Search"])
 
     with tab1:
         st.write("Upload your PDF documents to index them in the database.")
@@ -198,6 +223,25 @@ def main():
         # Get and display documents
         documents = DocumentStats().get_indexed_documents()
         display_documents(documents)
+
+    with tab3:
+        st.write("Search through indexed documents")
+
+        # Search interface
+        query = st.text_input("Enter your search query")
+        num_results = st.slider("Number of results", min_value=1, max_value=20, value=5)
+
+        if st.button("🔍 Search", type="primary"):
+            if query:
+                with st.spinner("Searching..."):
+                    # Perform search
+                    doc_stats = DocumentStats()
+                    results = doc_stats.search_documents(query, limit=num_results)
+
+                    # Display results
+                    display_search_results(results)
+            else:
+                st.warning("Please enter a search query.")
 
 
 if __name__ == "__main__":
