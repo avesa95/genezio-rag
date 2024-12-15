@@ -4,8 +4,8 @@ from llama_index.core.query_engine import CustomQueryEngine
 from llama_index.core.response_synthesizers import BaseSynthesizer, TreeSummarize
 from llama_index.llms.openai import OpenAI
 
-from experiments.new_retrieval.hybrid_retrieval import HybridSearch
-from experiments.new_retrieval.reranker import Reranking
+# from reranker import Reranking
+from hybrid_retrieval import HybridSearch
 
 load_dotenv()
 
@@ -13,8 +13,8 @@ load_dotenv()
 class Generate:
     def __init__(self) -> None:
         self.search = HybridSearch()
-        self.reranker = Reranking()
-        self.prompt_str = """You are an AI assistant specializing in explaining complex topics related to Retrieval-Augmented Generation(RAG). Your task is to provide a clear, concise, and informative explanation based on the following context and query.
+        # self.reranker = Reranking()
+        self.prompt_str = """You are an AI assistant specializing in answering user queries. Your task is to provide a clear, concise, and informative explanation based on the following context and query.
 
         Context:
         {context_str}
@@ -33,13 +33,11 @@ class Generate:
         """
         self.prompt_tmpl = PromptTemplate(self.prompt_str)
 
-    def prompt_generation(self, query: str, filename: str):
-        metadata_filter = self.search.metadata_filter(filename)
-        results = self.search.query_hybrid_search(query, metadata_filter)
-        print("RESULTS", results)
-        reranked_documents = self.reranker.rerank_documents(query, results)
+    def prompt_generation(self, query: str):
+        results = self.search.query_hybrid_search(query)
+        # reranked_documents = self.reranker.rerank_documents(query, results)
 
-        context = "/n/n".join(reranked_documents)
+        context = "/n/n".join(results)
 
         prompt_templ = self.prompt_tmpl.format(context_str=context, query_str=query)
 
@@ -74,8 +72,6 @@ def create_query_engine(prompt: str):
 if __name__ == "__main__":
     query_str = "Tell me about me?"
     prompt_gen = Generate()
-    prompt = prompt_gen.prompt_generation(
-        query=query_str, filename="B2B case studies May 2023.pdf"
-    )
+    prompt = prompt_gen.prompt_generation(query=query_str)
     response = create_query_engine(prompt)
     print(response)

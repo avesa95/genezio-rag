@@ -9,6 +9,7 @@ from qdrant_client import QdrantClient
 
 from hybrid_retrieval import HybridSearch
 from indexing import DocumentProcessor, QdrantIndexer
+from search import Generate, create_query_engine
 
 # Load environment variables
 load_dotenv()
@@ -86,7 +87,10 @@ class DocumentStats:
 
     def search_documents(self, query_text, limit=5):
         try:
-            return self.hybrid_search.query_hybrid_search(query_text, limit=limit)
+            prompt = Generate().prompt_generation(query=query_text)
+            response = create_query_engine(prompt)
+            return response
+            # return self.hybrid_search.query_hybrid_search(query_text, limit=limit)
         except Exception as e:
             logger.error(f"Error searching documents: {e}")
             return []
@@ -149,15 +153,14 @@ def display_search_results(results):
         st.info("No results found.")
         return
 
-    for i, result in enumerate(results):
-        st.markdown("**Content**")
-        st.text_area(
-            "Text",
-            result,
-            height=150,
-            disabled=True,
-            key=f"result_{i}",
-        )
+    st.markdown("**Content**")
+    st.text_area(
+        "Text",
+        results,
+        height=150,
+        disabled=True,
+        key="results",
+    )
 
 
 def main():
