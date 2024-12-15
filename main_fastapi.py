@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from hybrid_retrieval import HybridSearch
 from indexing import DocumentProcessor, QdrantIndexer
+from search import Generate, create_query_engine
 
 app = FastAPI(
     title="Document Search API",
@@ -30,7 +30,7 @@ class SearchQuery(BaseModel):
 
 
 class SearchResponse(BaseModel):
-    documents: List[str]
+    response: str
 
 
 @app.post("/index/", response_model=ProcessingResponse)
@@ -83,17 +83,16 @@ async def index_documents(files: List[UploadFile] = File(...)):
 
 
 @app.post("/search/", response_model=SearchResponse)
-async def search_documents(query: SearchQuery):
+async def search_documents(query: str):
     """
     Perform hybrid search on indexed documents.
     """
     try:
-        search_engine = HybridSearch()
-        documents = search_engine.query_hybrid_search(
-            query=query.query, metadata_filter=query.metadata_filter, limit=query.limit
-        )
+        prompt_gen = Generate()
+        prompt = prompt_gen.prompt_generation(query=query)
+        response = create_query_engine(prompt)
 
-        return SearchResponse(documents=documents)
+        return SearchResponse(response=response)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")

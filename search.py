@@ -37,7 +37,7 @@ class Generate:
         results = self.search.query_hybrid_search(query)
         # reranked_documents = self.reranker.rerank_documents(query, results)
 
-        context = "/n/n".join(results)
+        context = "\n\n".join(results)
 
         prompt_templ = self.prompt_tmpl.format(context_str=context, query_str=query)
 
@@ -70,7 +70,7 @@ def create_query_engine(prompt: str):
 
 
 if __name__ == "__main__":
-    query_str = "Tell me about me?"
+    query_str = "What are the key features of Genezio as an AWS Lambda alternative?"
     prompt_gen = Generate()
     prompt = prompt_gen.prompt_generation(query=query_str)
     response = create_query_engine(prompt)
